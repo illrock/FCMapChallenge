@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="text_standard">16sp</dimen>
+
+    <dimen name="appbar_title">16sp</dimen>
+    <dimen name="dialog_title">24sp</dimen>
+</resources>

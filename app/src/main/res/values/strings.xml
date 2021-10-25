@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">FCMapChallenge</string>
+
+    <string name="speed_template">%1$d km/h</string>
+
+    <string name="vehicles_title">Vehicles</string>
+    <string name="vehicles_empty_api_key_message">Please enter API key</string>
+    <string name="vehicles_unknown_api_key_message">Unknown API key</string>
+
+    <string name="trip_title_template">Location history: %1$s</string>
+    <string name="trip_date_title">Date:</string>
+    <string name="trip_empty_data_message">The data is empty\nPlease, try another date</string>
+
+    <string name="api_key_title">Enter api key</string>
+
+    <string name="error_internal">Backend error</string>
+    <string name="error_unknown">Unknown error</string>
 </resources>

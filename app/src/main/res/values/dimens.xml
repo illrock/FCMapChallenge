@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="padding_standard">16dp</dimen>
+    <dimen name="padding_half">8dp</dimen>
+
+    <dimen name="toolbar_height">56dp</dimen>
+    <dimen name="toolbar_icon">40dp</dimen>
+    <dimen name="toolbar_icon_padding">8dp</dimen>
+
+    <dimen name="api_key_min_width">256dp</dimen>
+
+    <dimen name="map_trip_padding">56dp</dimen>
+</resources>
