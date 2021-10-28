@@ -10,6 +10,9 @@
     <string name="trip_title_template">Location history: %1$s</string>
     <string name="trip_date_title">Date:</string>
     <string name="trip_empty_data_message">The data is empty\nPlease, try another date</string>
+    <string name="trip_pin_start">Start</string>
+    <string name="trip_pin_end">End</string>
+    <string name="trip_distance_template">Trip distance: %1$d m</string>
 
     <string name="api_key_title">Enter api key</string>
 

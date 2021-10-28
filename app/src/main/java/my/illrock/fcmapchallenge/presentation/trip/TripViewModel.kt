@@ -3,11 +3,16 @@ package my.illrock.fcmapchallenge.presentation.trip
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import my.illrock.fcmapchallenge.data.entity.LastData
 import my.illrock.fcmapchallenge.data.entity.RawData
+import my.illrock.fcmapchallenge.data.network.exception.InternalServerException
+import my.illrock.fcmapchallenge.data.network.response.ResultWrapper
 import my.illrock.fcmapchallenge.data.repository.LastDataRepository
 import my.illrock.fcmapchallenge.data.repository.RawDataRepository
 import my.illrock.fcmapchallenge.presentation.util.DateUtils
@@ -21,6 +26,7 @@ import javax.inject.Inject
 class TripViewModel @Inject constructor(
     private val rawDataRepository: RawDataRepository,
     private val lastDataRepository: LastDataRepository,
+    private val dispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val _tripData = MutableLiveData<List<RawData>>(listOf())
@@ -41,24 +47,26 @@ class TripViewModel @Inject constructor(
     private val _showDatePicker = MutableLiveData<Event<Date>>()
     val showDatePicker: LiveData<Event<Date>> = _showDatePicker
 
+    private val _errorString = MutableLiveData<Event<String>>()
+    val errorString: LiveData<Event<String>> = _errorString
+
     private var objectId: Long = 0L
     private var lastData: LastData? = null
 
-    fun init(objectId: Long) {
+    fun init(objectId: Long, defaultDate: Date? = null) {
         if (isInitialized()) return
 
         this.objectId = objectId
-        lastDataRepository.get(false)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({
-                lastData = it.find { data -> data.objectId == objectId }
-                _plate.value = lastData?.plate.orEmpty()
-            }, {
-                it.print()
-            })
 
-        onDatePick(Calendar.getInstance().time)
+        viewModelScope.launch(dispatcher) {
+            val result = LastData(lastDataRepository.getById(objectId))
+            lastData = result
+            withContext(Dispatchers.Main) {
+                _plate.value = result.plate
+            }
+        }
+
+        onDatePick(defaultDate ?: Calendar.getInstance().time)
     }
 
     fun onMapReady() {
@@ -88,18 +96,32 @@ class TripViewModel @Inject constructor(
     }
 
     private fun loadTrip(begin: String, end: String) {
-        rawDataRepository.get(objectId, begin, end)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .doOnSubscribe { _isLoading.value = true }
-            .subscribe({
+        _isLoading.value = true
+        viewModelScope.launch(dispatcher) {
+            val result = rawDataRepository.get(objectId, begin, end)
+            withContext(Dispatchers.Main) {
+                handleRawDataResult(result)
+            }
+        }
+    }
+
+    private fun handleRawDataResult(result: ResultWrapper<List<RawData>>) {
+        when (result) {
+            is ResultWrapper.Success -> {
                 _isLoading.value = false
-                _tripData.value = it
-                _isEmptyData.value = it.isEmpty()
-            }, {
+                _tripData.value = result.data
+                _isEmptyData.value = result.data.isEmpty()
+            }
+            is ResultWrapper.Error -> {
                 _isLoading.value = false
                 _isEmptyData.value = false
-                it.print()
-            })
+
+                val errorString =
+                    if (result.exception is InternalServerException) result.exception.error
+                    else null
+                errorString?.let { _errorString.value = Event(it) }
+                result.exception.print()
+            }
+        }
     }
 }

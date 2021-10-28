@@ -9,9 +9,12 @@
     <color name="white">#FFFFFFFF</color>
 
     <color name="text_main">#000000</color>
-    <color name="text_secondary">#11000000</color>
-    <color name="toolbar_icon">#ffffff</color>
+    <color name="text_secondary">@color/teal_700</color>
+    <color name="toolbar_item">#ffffff</color>
 
     <color name="map_pin">@android:color/holo_red_dark</color>
     <color name="map_route">@android:color/holo_blue_dark</color>
+
+    <color name="trip_calendar_background">@color/purple_500</color>
+    <color name="trip_calendar_item">@color/toolbar_item</color>
 </resources>

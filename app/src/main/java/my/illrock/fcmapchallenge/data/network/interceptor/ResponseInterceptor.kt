@@ -6,6 +6,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.IOException
 import org.json.JSONObject
 
 /**
@@ -15,10 +16,10 @@ import org.json.JSONObject
 class ResponseInterceptor() : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        return intercept(chain, null)
+        return handleStatus(chain)
     }
 
-    private fun intercept(chain: Interceptor.Chain, params: Map<String, String>?): Response {
+    private fun handleStatus(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val apiBaseUrl = BuildConfig.API_BASE_URL.toHttpUrlOrNull()?.host
         val isFleetUrl = request.url.host.equals(apiBaseUrl, true)
@@ -36,7 +37,7 @@ class ResponseInterceptor() : Interceptor {
                         }
                         else -> throw InternalServerException(json.getString(ERROR))
                     }
-                } else throw InternalServerException(json.getString(ERROR))
+                } else throw IOException("Unknown response format")
             } ?: response
         } else {
             return response

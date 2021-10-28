@@ -2,5 +2,8 @@
 <resources>
     <color name="text_main">#ffffff</color>
     <color name="text_secondary">#aaffff</color>
-    <color name="toolbar_icon">#ffffff</color>
+    <color name="toolbar_item">#ffffff</color>
+
+    <color name="trip_calendar_background">@color/black</color>
+    <color name="trip_calendar_item">@color/toolbar_item</color>
 </resources>

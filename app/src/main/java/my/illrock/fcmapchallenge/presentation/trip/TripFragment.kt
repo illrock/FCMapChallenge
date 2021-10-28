@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.ColorInt
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
@@ -16,12 +15,13 @@ import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.commit
 import androidx.fragment.app.viewModels
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
+import com.google.android.material.snackbar.Snackbar
+import com.google.maps.android.SphericalUtil
 import com.google.maps.android.ktx.addMarker
 import dagger.hilt.android.AndroidEntryPoint
 import my.illrock.fcmapchallenge.R
@@ -29,7 +29,6 @@ import my.illrock.fcmapchallenge.data.entity.RawData
 import my.illrock.fcmapchallenge.databinding.FragmentTripBinding
 import my.illrock.fcmapchallenge.presentation.trip.datepicker.DatePickerFragment
 import my.illrock.fcmapchallenge.presentation.util.DateUtils
-import my.illrock.fcmapchallenge.presentation.vehicles.VehiclesFragment
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -54,8 +53,9 @@ class TripFragment : Fragment(R.layout.fragment_trip) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.ivBack.setOnClickListener { parentFragmentManager.popBackStack() }
         binding.llDatePicker.setOnClickListener { vm.onDatePickerClick() }
+        binding.tvEmptyDataMessage.setOnClickListener { vm.onDatePickerClick() }
         initMap()
-        setupViewModel()
+        setupViewModel(view)
         setDatePickerResultListener()
     }
 
@@ -67,7 +67,7 @@ class TripFragment : Fragment(R.layout.fragment_trip) {
         }
     }
 
-    private fun setupViewModel() {
+    private fun setupViewModel(view: View) {
         val objectId = arguments?.getLong(ARG_OBJECT_ID) as Long
         vm.init(objectId)
 
@@ -83,10 +83,12 @@ class TripFragment : Fragment(R.layout.fragment_trip) {
 
         vm.isLoading.observe(viewLifecycleOwner) {
             binding.pbLoading.isVisible = it
+            if (it) binding.tvEmptyDataMessage.isVisible = false
         }
 
         vm.isEmptyData.observe(viewLifecycleOwner) {
             binding.tvEmptyDataMessage.isVisible = it
+            if (it) binding.tvDistance.text = ""
         }
 
         vm.chosenDate.observe(viewLifecycleOwner) {
@@ -99,6 +101,12 @@ class TripFragment : Fragment(R.layout.fragment_trip) {
         vm.showDatePicker.observe(viewLifecycleOwner) {
             it.getContentIfNotHandled()?.let { date ->
                 DatePickerFragment(date).show(parentFragmentManager, null)
+            }
+        }
+
+        vm.errorString.observe(viewLifecycleOwner) {
+            it.getContentIfNotHandled()?.let { error ->
+                Snackbar.make(view, error, Snackbar.LENGTH_LONG).show()
             }
         }
     }
@@ -114,6 +122,7 @@ class TripFragment : Fragment(R.layout.fragment_trip) {
     }
 
     private fun GoogleMap.showData(dataList: List<RawData>) {
+        clear()
         val filteredData = dataList
             // I was surprised that some data entries comes without coordinates
             .filter { it.latitude != null && it.longitude != null }
@@ -126,8 +135,12 @@ class TripFragment : Fragment(R.layout.fragment_trip) {
         )
 
         if (filteredData.isNotEmpty()) {
-            addPin(filteredData.first(), "Start")
-            if (filteredData.size > 1) addPin(filteredData.last(), "End")
+            addPin(filteredData.first(), getString(R.string.trip_pin_start))
+            if (filteredData.size > 1) addPin(filteredData.last(), getString(R.string.trip_pin_end))
+            val distance = SphericalUtil.computeLength(filteredData).toLong()
+            binding.tvDistance.text = getString(R.string.trip_distance_template, distance)
+        } else {
+            binding.tvDistance.text = ""
         }
 
         setOnMapLoadedCallback {

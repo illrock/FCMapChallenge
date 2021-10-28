@@ -3,13 +3,16 @@ package my.illrock.fcmapchallenge.presentation.vehicles
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.disposables.Disposable
-import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import my.illrock.fcmapchallenge.R
 import my.illrock.fcmapchallenge.data.entity.LastData
 import my.illrock.fcmapchallenge.data.network.exception.InternalServerException
+import my.illrock.fcmapchallenge.data.network.response.ResultWrapper
 import my.illrock.fcmapchallenge.data.repository.ApiKeyRepository
 import my.illrock.fcmapchallenge.data.repository.LastDataRepository
 import my.illrock.fcmapchallenge.presentation.util.Event
@@ -19,10 +22,9 @@ import javax.inject.Inject
 @HiltViewModel
 class VehiclesViewModel @Inject constructor(
     private val lastDataRepository: LastDataRepository,
-    private val apiKeyRepository: ApiKeyRepository
+    private val apiKeyRepository: ApiKeyRepository,
+    private val dispatcher: CoroutineDispatcher
 ) : ViewModel() {
-
-    private var lastDataDisposable = Disposable.disposed()
 
     private val _lastData = MutableLiveData<List<LastData>>(listOf())
     val lastData: LiveData<List<LastData>> = _lastData
@@ -70,33 +72,38 @@ class VehiclesViewModel @Inject constructor(
     }
 
     private fun loadData(isForce: Boolean) {
-        lastDataDisposable.dispose()
-        lastDataDisposable = lastDataRepository.get(isForce)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .doOnSubscribe {
-                _isLoading.value = true
-                hideErrors()
-            }.subscribe({
+        _isLoading.value = true
+        hideErrors()
+        viewModelScope.launch(dispatcher) {
+            lastDataRepository.getAll(isForce).let { result ->
+                withContext(Dispatchers.Main) {
+                    handleLastDataResult(result)
+                }
+            }
+        }
+    }
+
+    private fun handleLastDataResult(result: ResultWrapper<List<LastData>>) {
+        when (result) {
+            is ResultWrapper.Success -> {
                 _isLoading.value = false
-                _lastData.value = it
-                apiKey = apiKeyRepository.get()
-            }, {
+                _lastData.value = result.data
+            }
+            is ResultWrapper.Error -> {
                 _isLoading.value = false
-                it.print()
-                if (it is InternalServerException) {
-                    _errorString.value = Event(it.error)
+                val e = result.exception
+                e.print()
+                if (e is InternalServerException) {
+                    _errorString.value = Event(e.error)
                     _errorRes.value = Event(null)
-//                    if (_showEmptyApiKeyMessage.value == false) {
-                        _showUnknownApiKeyMessage.value = it.isUnknownApiException()
-//                    }
+                    _showUnknownApiKeyMessage.value = e.isUnknownApiKeyException()
                 } else {
                     _errorString.value = Event(null)
                     _errorRes.value = Event(R.string.error_unknown)
                 }
-                apiKey = apiKeyRepository.get()
                 lastDataRepository.clearCache()
-            })
+            }
+        }
     }
 
     private fun hideErrors() {
@@ -113,12 +120,9 @@ class VehiclesViewModel @Inject constructor(
         _showEmptyApiKeyMessage.value = newKey.isEmpty()
 
         if (newKey != apiKey) {
+            apiKey = newKey
             updateLastData(true, newKey)
             _lastData.value = listOf()
         }
-    }
-
-    override fun onCleared() {
-        lastDataDisposable.dispose()
     }
 }

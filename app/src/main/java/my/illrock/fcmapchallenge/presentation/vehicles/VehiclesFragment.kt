@@ -52,7 +52,10 @@ class VehiclesFragment : Fragment(R.layout.fragment_vehicles) {
         binding.tvEmptyApiKeyMessage.setOnClickListener { vm.onApiKeyClick() }
         binding.tvUnknownApiKeyMessage.setOnClickListener { vm.onApiKeyClick() }
         setApiKeyResultListener()
+        setupViewModel(view)
+    }
 
+    private fun setupViewModel(view: View) {
         vm.lastData.observe(viewLifecycleOwner) {
             vehiclesAdapter.submitList(it)
         }
@@ -82,10 +85,12 @@ class VehiclesFragment : Fragment(R.layout.fragment_vehicles) {
 
         vm.showEmptyApiKeyMessage.observe(viewLifecycleOwner) {
             binding.tvEmptyApiKeyMessage.isVisible = it
+            binding.srlPull.isEnabled = !it
         }
 
         vm.showUnknownApiKeyMessage.observe(viewLifecycleOwner) {
             binding.tvUnknownApiKeyMessage.isVisible = it
+            binding.srlPull.isEnabled = !it
         }
 
         vm.init()

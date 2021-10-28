@@ -1,20 +1,22 @@
 package my.illrock.fcmapchallenge.presentation.di
 
 import android.content.Context
+import androidx.room.Room
 import com.squareup.moshi.Moshi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Dispatchers
 import my.illrock.fcmapchallenge.BuildConfig
+import my.illrock.fcmapchallenge.data.database.Database
 import my.illrock.fcmapchallenge.data.network.ApiService
 import my.illrock.fcmapchallenge.data.network.interceptor.FakeInterceptor
 import my.illrock.fcmapchallenge.data.network.interceptor.ResponseInterceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import retrofit2.adapter.rxjava3.RxJava3CallAdapterFactory
 import retrofit2.converter.moshi.MoshiConverterFactory
 import java.util.concurrent.TimeUnit
 
@@ -43,11 +45,20 @@ class AppModule {
             .baseUrl(BuildConfig.API_BASE_URL)
             .client(httpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
-            //todo coroutines
-            .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
             .build()
             .create(ApiService::class.java)
     }
+
+    @Provides
+    fun provideDatabase(@ApplicationContext context: Context): Database =
+        Room.databaseBuilder(context, Database::class.java, Database.NAME)
+            .build()
+
+    @Provides
+    fun providesLastDataDao(database: Database) = database.lastDataDao()
+
+    @Provides
+    fun provideCoroutineDispatcher() = Dispatchers.IO
 
     companion object {
         private const val CONNECT_TIMEOUT = 15L
