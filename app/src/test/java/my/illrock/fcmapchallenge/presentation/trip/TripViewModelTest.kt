@@ -31,7 +31,7 @@ class TripViewModelTest {
     val instantExecutorRule = InstantTaskExecutorRule()
 
     private val rawDataRepository = mockk<RawDataRepository> {
-        coEvery { get(MOCK_OBJECT_ID, MOCK_BEGIN, MOCK_END) } returns ResultWrapper.Success(listOf(
+        coEvery { get(any(), any(), any()) } returns ResultWrapper.Success(listOf(
             mockRawData()
         ))
     }
@@ -57,7 +57,7 @@ class TripViewModelTest {
     @Test
     fun init_success() {
         testDispatcher.runBlockingTest {
-            val expectedDate = Calendar.getInstance().time
+            val expectedDate = Date(MOCK_BEGIN_TIMESTAMP)
             vm.init(MOCK_OBJECT_ID, expectedDate)
 
             assertEquals(MOCK_PLATE, vm.plate.getOrAwaitValue())
@@ -81,7 +81,7 @@ class TripViewModelTest {
         coEvery { rawDataRepository.get(any(), any(), any()) } returns ResultWrapper.Error(expectedError)
 
         testDispatcher.runBlockingTest {
-            val expectedDate = Calendar.getInstance().time
+            val expectedDate = Date(MOCK_BEGIN_TIMESTAMP)
             vm.init(MOCK_OBJECT_ID, expectedDate)
 
             assertEquals(MOCK_PLATE, vm.plate.getOrAwaitValue())
@@ -119,6 +119,7 @@ class TripViewModelTest {
 
     private companion object {
         const val MOCK_OBJECT_ID = 1L
+        const val MOCK_BEGIN_TIMESTAMP = 1635379200000L
         const val MOCK_BEGIN = "2021-10-28"
         const val MOCK_END = "2021-10-29"
         const val MOCK_PLATE = "PL4T8"

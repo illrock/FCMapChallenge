@@ -28,7 +28,7 @@ class FakeInterceptor(private val context: Context) : Interceptor {
             SystemClock.sleep(5000)
 
             // Use any raw json file here
-            val inputStream = context.resources.openRawResource(R.raw.last_data_error)
+            val inputStream = context.resources.openRawResource(/*R.raw.last_data_error*/0)
             val response = BufferedReader(InputStreamReader(inputStream)).use(BufferedReader::readText)
 
             Response.Builder()
